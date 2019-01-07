@@ -32,6 +32,8 @@ library(dplyr)
 library(ade4) 
 library(ggmap)
 library(rgdal)
+library(spatstat)
+library(stpp)
 
 # Load Data
 #    Need to refer back to original crime data to access response time
@@ -138,3 +140,33 @@ point_proc <- city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 
   theme(text = element_text(size=30))+theme(axis.text.x=element_text(size=20))
 
 point_proc # save at 3000x1500
+
+#Now I want to make the size of my dataset smaller, so I will be very particular about the type of crime
+final_crime <- detroit_data[which(detroit_data$`Call Description` == "SHOTS FIRED IP"),]
+#There are 8,907 data points in this dataset
+hist(final_crime$datetime, breaks = "months", main = "Histogram of Detroit Date/Time", xlab = "Date/Time")
+
+city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
+                         data = final_crime, col = "blue", alpha =0.01) + coord_equal() +
+  ggtitle("Point Data, Detroit 'Shots Fired' Calls")+
+  theme(text = element_text(size=30))+theme(axis.text.x=element_text(size=20))
+
+### Fit a Point Process Model - Inhomogenous Models with varying intensity functions
+## 
+## Transform our data into ppm object
+## 
+det_owin <- as.owin(det_city)
+
+xyzt <- as.matrix(high_prio[,c("Longitude", "Latitude")])#,
+                               #"datetime")])
+
+crime_ppp <- as.ppp(xyzt, det_owin) #382 outside of the specified window
+plot(crime_ppp)
+
+#Fit preliminary kernel density estimate to data
+plot(density.ppp(crime_ppp), main = "Kernel Density Estimate")#, 
+     #zlim = c(0.000,0.03))
+
+
+
+
