@@ -144,10 +144,12 @@ point_proc # save at 3000x1500
 #Now I want to make the size of my dataset smaller, so I will be very particular about the type of crime
 final_crime <- detroit_data[which(detroit_data$`Call Description` == "SHOTS FIRED IP"),]
 #There are 8,907 data points in this dataset
+final_crime <- final_crime[which(final_crime$Priority == 1),] #still 7,915 crimes in this dataset
+
 hist(final_crime$datetime, breaks = "months", main = "Histogram of Detroit Date/Time", xlab = "Date/Time")
 
 city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
-                         data = final_crime, col = "blue", alpha =0.01) + coord_equal() +
+                         data = final_crime, col = "blue", alpha =0.1) + coord_equal() +
   ggtitle("Point Data, Detroit 'Shots Fired' Calls")+
   theme(text = element_text(size=30))+theme(axis.text.x=element_text(size=20))
 
@@ -210,5 +212,27 @@ plot(density.ppp(crime_ppp1), main = "Kernel Density Estimate, Q1")
 plot(density.ppp(crime_ppp2), main = "Kernel Density Estimate, Q2")
 plot(density.ppp(crime_ppp3), main = "Kernel Density Estimate, Q3")
 plot(density.ppp(crime_ppp4), main = "Kernel Density Estimate, Q4")
+
+
+
+#vignette: https://r-forge.r-project.org/scm/viewvc.php/*checkout*/pkg/inst/doc/stpp.pdf?revision=61&root=stpp&pathrev=61
+#page 12
+det_bound <- as.matrix(det_bound)
+keep <- as.matrix(keep)
+h <- mse2d(as.points(keep[, 1:2]), det_bound, nsmse = 30, range = 3000)
+h <- h$h[which.min(h$mse)]
+Ls <- kernel2d(as.points(keep[, 1:2]), det_bound, h, nx = 100, ny = 100)
+Lt <- dim(keep)[1] * density(keep[, 3], n = 54)$y
+Lst <- array(0, dim = c(100, 100, 54))
+for(k in 1:54) Lst[,,k] <- Ls$z * Lt[k] / dim(keep)[1]
+
+#this can be used to generate a  realization from this point pattern
+ipp2 <- rpp(lambda = Lst, s.region = det_bound, t.region = c(1, 54),
+            discrete.time = TRUE)
+image(Ls$x, Ls$y, Ls$z, col = grey((1000:1) / 1000))
+plot(1:54, Lt, col="white", xlab = "week", ylab = "temporal trend")
+lines(Lt)
+polygon(det_bound)
+animation(ipp2$xyt, add = TRUE, cex = 0.5, runtime = 15)
 
 
