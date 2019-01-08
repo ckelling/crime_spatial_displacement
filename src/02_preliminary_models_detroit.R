@@ -168,5 +168,47 @@ plot(density.ppp(crime_ppp), main = "Kernel Density Estimate")#,
      #zlim = c(0.000,0.03))
 
 
+#Now, I would also like to incorporate the temporal element
+## Create the dataset
+xyzt <- final_crime[,c("Longitude", "Latitude",
+                               "datetime")]
+range(final_crime$datetime) #this data occurs over the span of 1 year (almost exactly)
+colnames(xyzt) <- c("x", "y", "t")
+xyzt$t <- as.numeric(as.Date(xyzt$t))
+#converting to weeks
+xyzt$week <- (xyzt$t - 17064)/7
+xyzt <- xyzt[,-c(3)] #take out t so that week is the time variable
+xyzt$week <- round(xyzt$week)
+xyzt <- as.data.frame(xyzt)
+colnames(xyzt) <- c('x', 'y', 't')
+keep <- xyzt
+
+xyzt <- as.3dpoints(xyzt)
+
+#Need to create the boundary of Detroit city with points
+det_bound <- fortify(det_city)
+det_bound <- det_bound[,c("long", "lat")]
+plot(xyzt, s.region = det_bound)
+plot(xyzt, s.region = det_bound, pch = 20, mark = TRUE)
+animation(xyzt, runtime = 10, cex = 0.5, s.region = det_bound)
+stan(xyzt, bgpoly = det_bound, bgframe = FALSE)
+
+
+#I will create a kernel density estimate for the each month 
+# over the course of our data and plot them
+full_ppp <- keep[,c("x", "y")]
+
+
+crime_ppp1 <- as.ppp(full_ppp[which(keep$t<13),], det_owin)
+crime_ppp2 <- as.ppp(full_ppp[which(keep$t>13 & keep$t<26),], det_owin)
+crime_ppp3 <- as.ppp(full_ppp[which(keep$t>26 & keep$t<39),], det_owin)
+crime_ppp4 <- as.ppp(full_ppp[which(keep$t>39),], det_owin)
+
+
+par(mfrow = c(2,2), nrow = 2)
+plot(density.ppp(crime_ppp1), main = "Kernel Density Estimate, Q1")
+plot(density.ppp(crime_ppp2), main = "Kernel Density Estimate, Q2")
+plot(density.ppp(crime_ppp3), main = "Kernel Density Estimate, Q3")
+plot(density.ppp(crime_ppp4), main = "Kernel Density Estimate, Q4")
 
 
