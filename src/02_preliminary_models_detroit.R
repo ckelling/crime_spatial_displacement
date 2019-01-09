@@ -2,22 +2,9 @@
 ### Preliminary Model of Crime- Detroit, MI
 ### Claire Kelling
 ### 
-### Last Updated: 1/7/19
+### Last Updated: 1/9/19
 ### 
 
-
-
-#	2 page summary of basic models fit and the results of careful EDA/basic modeling
-#	Simple Poisson process with smooth surface
-#	Smooth surface over time
-#	How to choose to aggregate to what time? 
-#   How does this impact the definition of movement of crime?
-#   Point process model with regression
-# Lagged regression- has to have some time incorporated
-# Lambda(t) has to be impacted by gentrification at the last time point
-
-
-# Load the data
 #Libraries
 library(sp)
 library(gstat)
@@ -34,11 +21,12 @@ library(ggmap)
 library(rgdal)
 library(spatstat)
 library(stpp)
+library(rgeos)
 
 # Load Data
 #    Need to refer back to original crime data to access response time
-load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/gentrification_displacement_project/data/working/det_bg.Rdata")
-load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/gentrification_displacement_project/data/working/detroit_data.Rdata")
+load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/det_bg.Rdata")
+load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/detroit_data.Rdata")
 
 detroit_data$Longitude1 <- detroit_data$Longitude
 detroit_data$Latitude1 <- detroit_data$Latitude
@@ -88,6 +76,9 @@ ploteqc <- function(spobj, z, breaks, ...){
   image.plot(legend.only = TRUE, zlim = range(breaks), col = pal)
 }
 
+summ <- detroit_data %>% count(`Call Description`)
+
+
 ## Plotting
 #deleting the cases with negative time........ (no concerns on the large positive end)
 detroit_data <- detroit_data[-which(detroit_data$`Total Response Time`<0),]
@@ -111,11 +102,12 @@ title(main = "Response Times, Wayne County")
 
 #Now I will do some preliminary Poisson Process Model
 #First, I will convert the time variable to something we can work with in R
-load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/gentrification_displacement_project/data/working/detroit_data.Rdata")
+load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/detroit_data.Rdata")
 #as.POSIXct(detroit_data$`Call Time`[1],format="%m/%d/%Y %H:%M:%S %p",tz=Sys.timezone())
 detroit_data$datetime <- as.POSIXct(detroit_data$`Call Time`,format="%m/%d/%Y %H:%M:%S %p",tz=Sys.timezone())
 
 hist(detroit_data$datetime, breaks = "months", main = "Histogram of Detroit Date/Time", xlab = "Date/Time")
+range(detroit_data$datetime, na.rm = T)
 
 #Subset to Priority 1 Crime Types
 length(unique(detroit_data$Category)) #211
@@ -131,6 +123,7 @@ hist(high_prio$datetime, breaks = "months", main = "Histogram of Detroit Date/Ti
 #See distribution of crimes over space
 #  Load the city boundaries file
 det_city <- readOGR(dsn="C:/Users/ckell/Desktop/Google Drive/Box Sync/SODA 502 project - 311/City of Detroit Boundary Shapefile", layer="det_city")
+det_city <- spTransform(det_city, CRS("+proj=longlat"))
 sp_f <- fortify(det_city)
 city_bound <- DetroitMap + geom_polygon(data = sp_f, aes(long, lat, group = group),colour="red", fill = NA)
 
@@ -143,15 +136,53 @@ point_proc # save at 3000x1500
 
 #Now I want to make the size of my dataset smaller, so I will be very particular about the type of crime
 final_crime <- detroit_data[which(detroit_data$`Call Description` == "SHOTS FIRED IP"),]
+hist(final_crime$Priority)
+hist(detroit_data$Priority)
 #There are 8,907 data points in this dataset
 final_crime <- final_crime[which(final_crime$Priority == 1),] #still 7,915 crimes in this dataset
 
-hist(final_crime$datetime, breaks = "months", main = "Histogram of Detroit Date/Time", xlab = "Date/Time")
+hist(final_crime$datetime, breaks = "months", main = "Histogram of Shots Fired Crimes", xlab = "Date/Time")
 
-city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
-                         data = final_crime, col = "blue", alpha =0.1) + coord_equal() +
+#city_bound or ggplot() here
+ggplot()  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
+                         data = final_crime, col = "blue", alpha =0.05) + coord_equal() +
   ggtitle("Point Data, Detroit 'Shots Fired' Calls")+
-  theme(text = element_text(size=30))+theme(axis.text.x=element_text(size=20))
+  theme(text = element_text(size=20))+theme(axis.text.x=element_text(size=10))
+
+# Aggregate by block group
+plot(det_bg)
+proj4string(det_bg)
+proj4string(det_city)
+
+city_bg <- det_bg[det_city,]
+plot(city_bg)
+plot(city_bg, col = "red", add = TRUE)
+
+plot_dat <- final_crime
+plot_dat$Longitude1 <- plot_dat$Longitude
+plot_dat$Latitude1 <- plot_dat$Latitude
+#I will convert the files to spatial points and polygons with the same projection
+coordinates(plot_dat) <- ~Longitude1+Latitude1
+proj4string(plot_dat) <- proj4string(city_bg)
+
+o = over(plot_dat, city_bg)
+agg_dat <- plyr::count(o, c('GEOID'))
+agg_dat$GEOID <- as.factor(agg_dat$GEOID)
+
+#Now I will create the data structure that I need to create a plot
+sp_f <- fortify(city_bg)
+city_bg$id <- row.names(city_bg)
+city_bg@data <- left_join(city_bg@data, agg_dat, by = (GEOID = "GEOID"))
+sp_f <- left_join(sp_f, city_bg@data[,c(13,14)])
+
+
+#make a color or grayscale plot to illustrate this
+obs_by_dist <- ggplot() + geom_polygon(data = sp_f, aes(long, lat, group = group, fill = freq)) + coord_equal() +
+  labs(fill = "No. of \nCrimes")+ geom_polygon(data=sp_f,aes(long,lat, group = group), 
+                                               fill = NA, col = "black") +
+  ggtitle("Number of Shots Fired Calls per Block Group")+ scale_fill_gradient(low = "lightblue", high = "navyblue")
+
+obs_by_dist
 
 ### Fit a Point Process Model - Inhomogenous Models with varying intensity functions
 ## 
@@ -212,7 +243,6 @@ plot(density.ppp(crime_ppp1), main = "Kernel Density Estimate, Q1")
 plot(density.ppp(crime_ppp2), main = "Kernel Density Estimate, Q2")
 plot(density.ppp(crime_ppp3), main = "Kernel Density Estimate, Q3")
 plot(density.ppp(crime_ppp4), main = "Kernel Density Estimate, Q4")
-
 
 
 #vignette: https://r-forge.r-project.org/scm/viewvc.php/*checkout*/pkg/inst/doc/stpp.pdf?revision=61&root=stpp&pathrev=61
