@@ -1,9 +1,9 @@
-### 
+###
 ### Preliminary Model of Crime- Detroit, MI
 ### Claire Kelling
-### 
+###
 ### Last Updated: 1/9/19
-### 
+###
 
 #Libraries
 library(sp)
@@ -16,12 +16,14 @@ library(tigris)
 library(spdep)
 library(ggplot2)
 library(dplyr)
-library(ade4) 
+library(ade4)
 library(ggmap)
 library(rgdal)
 library(spatstat)
 library(stpp)
 library(rgeos)
+#BiocManager::install("EBImage", version = "3.8")
+library(GiNA)
 
 # Load Data
 #    Need to refer back to original crime data to access response time
@@ -43,8 +45,8 @@ det_bg <- spTransform(det_bg, CRS("+proj=longlat"))
 load(file = "C:/Users/ckell/Desktop/Google Drive/01_Penn State/2018-2019/Fall 2018/soda_502/project/Detroit_Map.Rdata")
 sp_f <- fortify(det_bg)
 det_bg$id <- row.names(det_bg)
-det_bg_plot <- DetroitMap + geom_polygon(data=sp_f,aes(long,lat, group = group), 
-                                              fill = NA, col = "black") +
+det_bg_plot <- DetroitMap + geom_polygon(data=sp_f,aes(long,lat, group = group),
+                                         fill = NA, col = "black") +
   ggtitle("Block Groups in Detroit")
 
 #map of Detroit with block groups
@@ -69,7 +71,7 @@ detroit_data <- detroit_data[keep,]
 
 ploteqc <- function(spobj, z, breaks, ...){
   pal <- tim.colors(length(breaks)-1)
-  fb <- classIntervals(z, n = length(pal), 
+  fb <- classIntervals(z, n = length(pal),
                        style = "fixed", fixedBreaks = breaks)
   col <- findColours(fb, pal)
   plot(spobj, col = col, ...)
@@ -91,9 +93,9 @@ plot_dat <- detroit_data[plot_ind,]
 
 range(plot_dat$`Total Response Time`)
 breaks <- 0:range(plot_dat$`Total Response Time`)[2]
-xlim <- c(as.numeric(min(det_bg@data$INTPTLON)), as.numeric(max(det_bg@data$INTPTLON))) 
+xlim <- c(as.numeric(min(det_bg@data$INTPTLON)), as.numeric(max(det_bg@data$INTPTLON)))
 xlim <- c(xlim[2], xlim[1])
-ylim <- c(as.numeric(min(det_bg@data$INTPTLAT)), as.numeric(max(det_bg@data$INTPTLAT))) 
+ylim <- c(as.numeric(min(det_bg@data$INTPTLAT)), as.numeric(max(det_bg@data$INTPTLAT)))
 ploteqc(plot_dat, plot_dat$`Total Response Time`, breaks, pch = 19, xlim=xlim, ylim = ylim)
 plot(det_bg, add = TRUE)
 title(main = "Response Times, Wayne County")
@@ -127,7 +129,7 @@ det_city <- spTransform(det_city, CRS("+proj=longlat"))
 sp_f <- fortify(det_city)
 city_bound <- DetroitMap + geom_polygon(data = sp_f, aes(long, lat, group = group),colour="red", fill = NA)
 
-point_proc <- city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
+point_proc <- city_bound  + geom_point(aes(x = Longitude, y = Latitude), size = 1,
                                        data = high_prio, col = "blue", alpha =0.01) + coord_equal() +
   ggtitle("Point Data, Detroit High Priority Calls")+
   theme(text = element_text(size=30))+theme(axis.text.x=element_text(size=20))
@@ -144,8 +146,8 @@ final_crime <- final_crime[which(final_crime$Priority == 1),] #still 7,915 crime
 hist(final_crime$datetime, breaks = "months", main = "Histogram of Shots Fired Crimes", xlab = "Date/Time")
 
 #city_bound or ggplot() here
-ggplot()  + geom_point(aes(x = Longitude, y = Latitude), size = 1, 
-                         data = final_crime, col = "blue", alpha =0.05) + coord_equal() +
+ggplot()  + geom_point(aes(x = Longitude, y = Latitude), size = 1,
+                       data = final_crime, col = "blue", alpha =0.05) + coord_equal() +
   ggtitle("Point Data, Detroit 'Shots Fired' Calls")+
   theme(text = element_text(size=20))+theme(axis.text.x=element_text(size=10))
 
@@ -178,33 +180,33 @@ sp_f <- left_join(sp_f, city_bg@data[,c(13,14)])
 
 #make a color or grayscale plot to illustrate this
 obs_by_dist <- ggplot() + geom_polygon(data = sp_f, aes(long, lat, group = group, fill = freq)) + coord_equal() +
-  labs(fill = "No. of \nCrimes")+ geom_polygon(data=sp_f,aes(long,lat, group = group), 
+  labs(fill = "No. of \nCrimes")+ geom_polygon(data=sp_f,aes(long,lat, group = group),
                                                fill = NA, col = "black") +
   ggtitle("Number of Shots Fired Calls per Block Group")+ scale_fill_gradient(low = "lightblue", high = "navyblue")
 
 obs_by_dist
 
 ### Fit a Point Process Model - Inhomogenous Models with varying intensity functions
-## 
+##
 ## Transform our data into ppm object
-## 
+##
 det_owin <- as.owin(det_city)
 
 xyzt <- as.matrix(high_prio[,c("Longitude", "Latitude")])#,
-                               #"datetime")])
+#"datetime")])
 
 crime_ppp <- as.ppp(xyzt, det_owin) #382 outside of the specified window
 plot(crime_ppp)
 
 #Fit preliminary kernel density estimate to data
-plot(density.ppp(crime_ppp), main = "Kernel Density Estimate")#, 
-     #zlim = c(0.000,0.03))
+plot(density.ppp(crime_ppp), main = "Kernel Density Estimate")#,
+#zlim = c(0.000,0.03))
 
 
 #Now, I would also like to incorporate the temporal element
 ## Create the dataset
 xyzt <- final_crime[,c("Longitude", "Latitude",
-                               "datetime")]
+                       "datetime")]
 range(final_crime$datetime) #this data occurs over the span of 1 year (almost exactly)
 colnames(xyzt) <- c("x", "y", "t")
 xyzt$t <- as.numeric(as.Date(xyzt$t))
@@ -227,7 +229,7 @@ animation(xyzt, runtime = 10, cex = 0.5, s.region = det_bound)
 stan(xyzt, bgpoly = det_bound, bgframe = FALSE)
 
 
-#I will create a kernel density estimate for the each month 
+#I will create a kernel density estimate for the each month
 # over the course of our data and plot them
 full_ppp <- keep[,c("x", "y")]
 
@@ -238,7 +240,7 @@ crime_ppp3 <- as.ppp(full_ppp[which(keep$t>26 & keep$t<39),], det_owin)
 crime_ppp4 <- as.ppp(full_ppp[which(keep$t>39),], det_owin)
 
 
-par(mfrow = c(2,2), nrow = 2)
+par(mfrow = c(2,2))
 plot(density.ppp(crime_ppp1), main = "Kernel Density Estimate, Q1")
 plot(density.ppp(crime_ppp2), main = "Kernel Density Estimate, Q2")
 plot(density.ppp(crime_ppp3), main = "Kernel Density Estimate, Q3")
@@ -251,7 +253,9 @@ det_bound <- as.matrix(det_bound)
 keep <- as.matrix(keep)
 h <- mse2d(as.points(keep[, 1:2]), det_bound, nsmse = 30, range = 3000)
 h <- h$h[which.min(h$mse)]
-Ls <- kernel2d(as.points(keep[, 1:2]), det_bound, h, nx = 100, ny = 100)
+
+#make h = 0.01 smaller for more precise estimation
+Ls <- kernel2d(as.points(keep[, 1:2]), det_bound, 0.009, nx = 100, ny = 100)
 Lt <- dim(keep)[1] * density(keep[, 3], n = 54)$y
 Lst <- array(0, dim = c(100, 100, 54))
 for(k in 1:54) Lst[,,k] <- Ls$z * Lt[k] / dim(keep)[1]
@@ -259,10 +263,30 @@ for(k in 1:54) Lst[,,k] <- Ls$z * Lt[k] / dim(keep)[1]
 #this can be used to generate a  realization from this point pattern
 ipp2 <- rpp(lambda = Lst, s.region = det_bound, t.region = c(1, 54),
             discrete.time = TRUE)
-image(Ls$x, Ls$y, Ls$z, col = grey((1000:1) / 1000))
+
+par(mfrow = c(1,2))
+image(Ls$x, Ls$y, Ls$z, col=brewer.pal(11,"RdBu"))
 plot(1:54, Lt, col="white", xlab = "week", ylab = "temporal trend")
 lines(Lt)
 polygon(det_bound)
 animation(ipp2$xyt, add = TRUE, cex = 0.5, runtime = 15)
 
+
+
+#creating estimates of the spatial intensity over time
+#https://cran.r-project.org/web/packages/splancs/splancs.pdf
+b3d <- kernel3d(keep[,1:2], xyzt$t, seq(-83.2877, -82.9107, 0.008), seq(42.25540, 42.45682, 0.008),
+                seq(0,53,4), 0.03, 0.05)
+#brks <- quantile(b3d$v, seq(0,1,0.05))
+for(i in 1:14){
+  #i <- 1
+  new_df <- b3d$v[,,i]
+  new_df[new_df == 0] <- NA
+  b3d$v[,,i] <- new_df
+}
+
+oldpar <- par(mfrow=c(3,5))
+for (i in 1:14) image(seq(-83.2877, -82.9107, 0.008), seq(42.25540, 42.45682, 0.008), b3d$v[,,i],
+                      asp=1, xlab="", ylab="", main=i,  col=brewer.pal(11,"RdBu"))
+par(oldpar)
 
