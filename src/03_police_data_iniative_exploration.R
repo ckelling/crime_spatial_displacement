@@ -40,22 +40,6 @@ load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_gro
 
 #need to get lat and long for Baltimore
 balt_dat$location <- as.character(balt_dat$location)
-balt_dat$coordinates <- rep(NA, nrow(balt_dat))
-balt_dat$Latitude <- rep(NA, nrow(balt_dat))
-balt_dat$Longitude <- rep(NA, nrow(balt_dat))
-for(i in 1:nrow(balt_dat)){
-  print(i)
-  if(grepl("[\\(]", balt_dat$location[i]) == T){
-    balt_dat$coordinates[i] <- gsub("[\\(\\)]", "", regmatches(balt_dat$location[i], gregexpr("\\(.*?\\)", balt_dat$location[i]))[[1]])
-    
-    #after comma
-    balt_dat$Longitude[i] <- as.numeric(sub('.*,\\s*','', balt_dat$coordinates[i]))
-    
-    #before comma
-    balt_dat$Latitude[i] <- as.numeric(sub('\\s*,.*','', balt_dat$coordinates[i]))
-  }
-  
-}
 
 #I will only use those which already have a lat/long
 balt_dat <- balt_dat[which(grepl("[\\(]", balt_dat$location) == T), ]
