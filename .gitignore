@@ -3,3 +3,4 @@
 *.pdf
 *.csv
 src/00_get_maps.R
+*.png
