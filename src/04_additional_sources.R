@@ -3,7 +3,7 @@
 ### 
 ### Claire Kelling
 ###
-### Last Updated: 1/14/19
+### Last Updated: 1/15/19
 ###
 
 library(ggplot2)
@@ -54,11 +54,12 @@ arl_food_s <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/clai
 #Take out entries that have no date
 arl_food$inspectionDate <- as.character(arl_food$inspectionDate)
 
-arl_food <- arl_food[-which(arl_food$inspectionDate == ""),]
 arl_food$date <- sub('\\s*T.*','', arl_food$inspectionDate)
+arl_food <- arl_food[-which(arl_food$date == ""),]
 arl_food$date <- as.POSIXct(arl_food$date)
 
 range(arl_food$date) #2011 through 2015
+hist(arl_food$date, breaks = "months", main = "Histogram of Dates of Food Inspections", xlab = "Inspection Date")
 
 ###
 ### Arlington Picnic Shelter Reservations
@@ -72,6 +73,8 @@ arl_picnic$ReservationBeginDate <- as.character(arl_picnic$ReservationBeginDate)
 
 arl_picnic$date <- as.POSIXct(arl_picnic$ReservationBeginDate)
 range(arl_picnic$date) #2016 through 2018
+hist(arl_picnic$date, breaks = "months", main = "Histogram of Dates of Picnic Reservations", xlab = "Reservation Date")
+
 
 ###
 ### Arlington Park Reservations
@@ -93,4 +96,4 @@ arl_park <- arl_park[-which(nchar(arl_park$ReservationBeginDate) != 10), ]
 arl_park$date <- as.POSIXct(arl_park$ReservationBeginDate, format="%Y-%m-%d")
 range(arl_park$date, na.rm = T) #2016 through 2018
 
-hist(arl_park$date, breaks = "months")
+hist(arl_park$date, breaks = "months", main = "Histogram of Dates of Park Reservations", xlab = "Reservation Date")
