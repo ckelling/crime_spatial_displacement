@@ -16,6 +16,7 @@ library(ggplot2)
 ###
 #    Source: https://data.arlingtonva.us/dataviews/225313/real-estate-sale-history/
 arl_est <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/Arlington_real_estate.csv")
+arl_est2 <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/full_real_est_dat.csv")
 
 #This dataset is not geocoded, but it does include addresses, so it could be geocoded.
 # It includes the sale amount and the sale date
@@ -39,6 +40,29 @@ hist(log(arl_est$saleAmt), main = "Histogram of log sale amount", xlab = "log sa
 
 #Plot of sales over time with amount
 ggplot() + geom_point(data = arl_est, aes(x = date, y = saleAmt), col = "navyblue")+
+  ggtitle("Sale Price Over Time")
+
+
+arl_est2$saleDate <- as.character(arl_est2$saleDate)
+arl_est2$saleDate[1]
+
+
+#before comma
+arl_est2$date <- sub('\\s*T.*','', arl_est2$saleDate)
+arl_est2$date <- as.POSIXct(arl_est2$date)
+
+range(arl_est2$date) #"2007-10-29 EDT" "2019-01-09 EST"
+hist(arl_est2$date, breaks = "months", main = "Histogram of Dates of Sales", xlab = "Sale Date")
+
+#what about price it has sold for
+hist(arl_est2$saleAmt)
+range(arl_est2$saleAmt) #has one property that sold for 460 million
+hist(arl_est2$saleAmt[which(arl_est2$saleAmt < 800000000)])
+hist(log(arl_est2$saleAmt), main = "Histogram of log sale amount", xlab = "log sale amount")
+length(which(arl_est2$saleAmt == 0))
+
+#Plot of sales over time with amount
+ggplot() + geom_point(data = arl_est2, aes(x = date, y = saleAmt), col = "navyblue")+
   ggtitle("Sale Price Over Time")
 
 
