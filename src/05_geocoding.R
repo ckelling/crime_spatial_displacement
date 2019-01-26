@@ -49,28 +49,43 @@ View(head(full_addresses))
 ###
 ### Second set of addresses
 ###
-re_addresses <- arl_est$propertyStreetNbrNameText
-re_addresses <- as.character(re_addresses)
+arl_est$saleDate <- as.character(arl_est$saleDate)
+arl_est$date <- sub('\\s*T.*','', arl_est$saleDate)
+arl_est$date <- as.POSIXct(arl_est$date)
+
+arl_est2$saleDate <- as.character(arl_est2$saleDate)
+arl_est2$date <- sub('\\s*T.*','', arl_est2$saleDate)
+arl_est2$date <- as.POSIXct(arl_est2$date)
+
+range(arl_est$date)
+range(arl_est2$date)
+
+arl_est2 <- arl_est2[which((arl_est2$date < range(arl_est$date)[1] & 
+                             arl_est2$date > as.POSIXct("2004-01-01")) |
+                             arl_est2$date > range(arl_est$date)[2]),]
+
+re_addresses2 <- arl_est2$propertyStreetNbrNameText
+re_addresses2 <- as.character(re_addresses2)
 
 #last character
-last <- substr(re_addresses,nchar(re_addresses)-1, nchar(re_addresses))
+last <- substr(re_addresses2,nchar(re_addresses2)-1, nchar(re_addresses2))
 num <- grepl("\\d", last)
 
 #no apt number
-re_addresses_no <- re_addresses[which(!num)]
+re_addresses2_no <- re_addresses2[which(!num)]
 
 #has apt number
-re_addresses_apt <- re_addresses[which(num)]
-re_addresses_apt <- as.data.frame(re_addresses_apt)
-re_addresses_apt <- re_addresses_apt %>% 
-  mutate(re_addresses_apt = sub("\\s+[^ ]+$", "", re_addresses_apt))
+re_addresses2_apt <- re_addresses2[which(num)]
+re_addresses2_apt <- as.data.frame(re_addresses2_apt)
+re_addresses2_apt <- re_addresses2_apt %>% 
+  mutate(re_addresses2_apt = sub("\\s+[^ ]+$", "", re_addresses2_apt))
 
 #new list of addresses
-full_addresses <- c(re_addresses_no, re_addresses_apt$re_addresses_apt)
+full_addresses2 <- c(re_addresses2_no, re_addresses2_apt$re_addresses2_apt)
 
 #add city name and state
-full_addresses <- paste(full_addresses, "Arlington, VA", sep = " ")
-View(head(full_addresses))
+full_addresses2 <- paste(full_addresses2, "Arlington, VA", sep = " ")
+View(head(full_addresses2))
 
 ###
 ### Full Geocode using RDSTK package
@@ -98,13 +113,42 @@ for(i in 1:length(full_addresses)){ #don't include 15176, done at 15226
 }
 
 arl_est_reorder <- rbind(arl_est[which(!num),], arl_est[which(num),])
-arl_est_worked <- arl_est[-error_vec,]
-
+arl_est_worked <- arl_est_reorder[-error_vec,]
+geocode_dat <- cbind(geocode_dat[,1:3], arl_est_worked)
 
 #save(geocode_dat, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re.Rdata")
 #load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re.Rdata")
 #load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec.Rdata")
 
+###
+### Second set of addresses with updated dataset
+###
+#geocode_dat2 <- NULL
+#error_vec2 <- NULL
+for(i in 1:length(full_addresses2)){ #don't include 15176, done at 15226
+  #i <- 1
+  new_row <- try(street2coordinates(full_addresses2[i])[,c("latitude", "longitude")])
+  error_test <- substr(new_row[1], 1, 5)
+  if(error_test == "Error"){
+    error_vec2 <- rbind(error_vec2, i)
+  }else{
+    new_row <- cbind(full_addresses2[i], new_row)
+    geocode_dat2 <- rbind(geocode_dat2, new_row)
+    print(paste("done with", i, "out of", length(full_addresses2), sep = " "))
+  }
+  if(i %% 1000==0) {
+    # Print on the screen some message
+    print("saving file *****************")
+    save(geocode_dat2, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re2.Rdata")
+    save(error_vec2, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec2.Rdata")
+  }
+}
+
+arl_est_reorder <- rbind(arl_est2[which(!num),], arl_est2[which(num),])
+arl_est_worked <- arl_est_reorder[-error_vec2,]
+geocode_dat2 <- cbind(geocode_dat2[,1:3], arl_est_worked)
+
+full_geocode <- rbind(geocode_dat, geocode_dat2)
 
 ###
 ### For reference, here are a few other ways to geocode addresses:
