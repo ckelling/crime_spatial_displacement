@@ -21,7 +21,7 @@ register_google(key = mygooglekey)
 ggmap_credentials()
 
 # Load data on real estate sales
-arl_est <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/Arlington_real_estate.csv")arl_est2 <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/full_real_est_dat.csv")
+arl_est <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/Arlington_real_estate.csv")
 arl_est2 <- read.csv(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/original/full_real_est_dat.csv")
 re_addresses <- arl_est$propertyStreetNbrNameText
 re_addresses <- as.character(re_addresses)
@@ -143,6 +143,10 @@ for(i in 1:length(full_addresses2)){ #don't include 15176, done at 15226
     save(error_vec2, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec2.Rdata")
   }
 }
+#save(geocode_dat2, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re2.Rdata")
+#save(error_vec2, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec2.Rdata")
+#load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re2.Rdata")
+#load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec2.Rdata")
 
 arl_est_reorder <- rbind(arl_est2[which(!num),], arl_est2[which(num),])
 arl_est_worked <- arl_est_reorder[-error_vec2,]
