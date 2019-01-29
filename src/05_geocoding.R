@@ -2,7 +2,7 @@
 ### Geocoding Real Estate Data
 ###
 ### Claire Kelling
-### Last Modified: 1/28/19
+### Last Modified: 1/29/19
 ###
 
 
@@ -159,13 +159,24 @@ colnames(geocode_dat2)[1] <- "address"
 full_geocode <- rbind(geocode_dat, geocode_dat2)
 
 #save the final geocoded dataset
-save(full_geocode, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/final_full_geocode.Rdata")
+#save(full_geocode, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/final_full_geocode.Rdata")
+#load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/final_full_geocode.Rdata")
 
-us<-getData('GADM', country='USA', level=2)
-plot(us)
+
+us<-getData('GADM', country='USA', level=1) #state plot
+#plot(us)
 us2 <- us[-which(us@data$NAME_1 == "Alaska"),]
 us2 <- us2[-which(us2@data$NAME_1 == "Hawaii"),]
 plot(us2)
+
+proj4string(us2)
+coordinates(full_geocode) <- c("longitude", "latitude")
+proj4string(full_geocode) <- proj4string(us2)
+
+plot(us2)
+plot(full_geocode, add = T, col = "red", cex = 1, pch = 16)
+
+
 ###
 ### For reference, here are a few other ways to geocode addresses:
 ###
