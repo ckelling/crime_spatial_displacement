@@ -2,7 +2,7 @@
 ### Geocoding Real Estate Data
 ###
 ### Claire Kelling
-### Last Modified: 1/26/19
+### Last Modified: 1/28/19
 ###
 
 
@@ -14,6 +14,7 @@ library(devtools)
 #install_github("trinker/mapit") #trinker
 library(mapit)
 library(RDSTK)
+library(raster)
 
 mygooglekey <- "" #put key here
 
@@ -117,8 +118,9 @@ arl_est_worked <- arl_est_reorder[-error_vec,]
 geocode_dat <- cbind(geocode_dat[,1:3], arl_est_worked)
 
 #save(geocode_dat, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re.Rdata")
-#load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re.Rdata")
+load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/comp_re.Rdata")
 #load(file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/error_vec.Rdata")
+colnames(geocode_dat)[1] <- "address"
 
 ###
 ### Second set of addresses with updated dataset
@@ -151,9 +153,19 @@ for(i in 1:length(full_addresses2)){ #don't include 15176, done at 15226
 arl_est_reorder <- rbind(arl_est2[which(!num),], arl_est2[which(num),])
 arl_est_worked <- arl_est_reorder[-error_vec2,]
 geocode_dat2 <- cbind(geocode_dat2[,1:3], arl_est_worked)
+rownames(geocode_dat2) <- c()
+colnames(geocode_dat2)[1] <- "address"
 
 full_geocode <- rbind(geocode_dat, geocode_dat2)
 
+#save the final geocoded dataset
+save(full_geocode, file = "C:/Users/ckell/Desktop/Google Drive/Box Sync/claire_murali_sesa_group/crime/crime_spatial_displacement/data/working/final_full_geocode.Rdata")
+
+us<-getData('GADM', country='USA', level=2)
+plot(us)
+us2 <- us[-which(us@data$NAME_1 == "Alaska"),]
+us2 <- us2[-which(us2@data$NAME_1 == "Hawaii"),]
+plot(us2)
 ###
 ### For reference, here are a few other ways to geocode addresses:
 ###
